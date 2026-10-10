@@ -4,7 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>toolNest</title>
+    <title>ToolNest</title>
+    <!--
+      THEME INITIALISER
+      Runs before React loads and before the first paint.
+      It reads the theme saved by SiteHeader.jsx (key: "toolnest-theme")
+      and adds the "dark" class to <html> right away, so the page
+      never flashes light mode on reload.
+      The try/catch stops the page from breaking if the browser blocks
+      localStorage (e.g. strict privacy settings).
+    -->
+    <script>
+      try {
+        if (localStorage.getItem('toolnest-theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (error) {
+        // Storage unavailable: fall back to light mode silently.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

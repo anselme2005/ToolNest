@@ -106,7 +106,7 @@ export const tools = [
   path: '/tools/pdf-merger',
   icon: FileText,
   color: 'red',
-  tag: 'coming-soon',
+  status: 'coming-soon',
 },
 ];
 

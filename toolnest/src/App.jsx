@@ -2,7 +2,7 @@
 import { Link, Route, Routes } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 
-import HomePage from './pages/HomePage';
+import HomePage from './pages/Homepage';
 import JsonFormatter from './pages/tools/JsonFormatter';
 
 // Reusable fallback for unknown URLs.
