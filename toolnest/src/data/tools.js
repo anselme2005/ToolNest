@@ -41,11 +41,11 @@ export const tools = [
     color: 'cyan',
   },
   {
-    name: 'Color Converter',
+    name: 'Color Picker',
     description: 'Convert colors between HEX, RGB, and HSL.',
     category: 'Design',
     icon: Palette,
-    path: '/tools/color-converter',
+    path: '/tools/color-picker',
     color: 'pink',
   },
   {
@@ -55,6 +55,7 @@ export const tools = [
     icon: Image,
     path: '/tools/image-palette',
     color: 'orange',
+    status: 'coming-soon',
   },
   {
     name: 'Word Counter',
@@ -71,6 +72,7 @@ export const tools = [
     icon: WandSparkles,
     path: '/tools/case-converter',
     color: 'yellow',
+    status: 'coming-soon',
   },
   {
     name: 'Password Generator',
@@ -94,20 +96,9 @@ export const tools = [
     description: 'Create sample data for testing and development.',
     category: 'Developer',
     icon: Layers,
-    path: '/tools/fake-data',
+    path: '/tools/fake-data-generator',
     color: 'teal',
-    status: 'coming-soon',
   },
-  
-{
-  name: 'PDF Merger',
-  description: 'Combine multiple PDF files into one document quickly and easily.',
-  category: 'Utilities',
-  path: '/tools/pdf-merger',
-  icon: FileText,
-  color: 'red',
-  status: 'coming-soon',
-},
 ];
 
 export const categories = [

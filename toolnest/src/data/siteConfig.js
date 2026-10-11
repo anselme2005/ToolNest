@@ -8,10 +8,10 @@ const siteConfig = {
   name: 'Toolnest',
 
   // Temporary GitHub repository URL.
-  githubUrl: 'https://github.com/your-username/toolnest',
+  githubUrl: 'https://github.com/anselme2005/ToolNest',
 
   // Temporary destination for tool requests.
-  requestEmail: 'toolnest.requests@example.com',
+  requestEmail: 'monjohtemesazanselme@gmail.com',
 };
 
 export default siteConfig;
