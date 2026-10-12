@@ -1,7 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { ArrowLeft, Search } from "lucide-react";
 
-import HomePage from "./pages/Homepage";
+import HomePage from "./pages/HomePage";
 import JsonFormatter from "./pages/tools/JsonFormatter";
 import WordCounter from "./pages/tools/WordCounter";
 import Base64Converter from "./pages/tools/Base64Converter";
