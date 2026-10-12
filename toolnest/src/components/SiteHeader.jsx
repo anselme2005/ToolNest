@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Moon, Sun, Zap, GitBranch, Star, Lightbulb } from 'lucide-react';
+import { Moon, Sun, Wrench, Lightbulb } from 'lucide-react';
 
 import RequestToolModal from './RequestToolModal';
 import siteConfig from '../data/siteConfig';
@@ -40,7 +40,7 @@ export default function SiteHeader() {
               className="flex h-9 w-9 items-center justify-center
                 rounded-xl bg-[#bdf5cb] text-[#183d25]"
             >
-              <Zap size={21} fill="currentColor" />
+              <Wrench size={51} fill="currentColor" />
             </span>
 
             <span

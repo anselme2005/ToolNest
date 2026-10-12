@@ -1,12 +1,5 @@
-
 import { useState } from "react";
-import {
-  Copy,
-  Check,
-  Pipette,
-  RotateCcw,
-  Palette,
-} from "lucide-react";
+import { Copy, Check, Pipette, RotateCcw, Palette } from "lucide-react";
 import ToolLayout from "../../components/ToolLayout";
 
 // Convert a HEX color to RGB.
@@ -143,21 +136,27 @@ export default function ColorPicker() {
     setError("");
     setCopiedValue("");
 
-    setRecentColors((current) => [
-      normalized,
-      ...current.filter((item) => item !== normalized),
-    ].slice(0, 8));
+    setRecentColors((current) =>
+      [normalized, ...current.filter((item) => item !== normalized)].slice(
+        0,
+        8,
+      ),
+    );
   }
 
-  // Update the HEX input and apply valid colors immediately.
+  // Update the HEX input while typing.
+  // Only a full 6-digit code is applied live. Applying 3-digit shorthand
+  // here would rewrite "#3b8" to "#33BB88" and interrupt the user mid-typing.
+  // Shorthand is applied when the field loses focus or Enter is pressed
+  // (see handleHexBlur below).
   function handleHexChange(value) {
     setHexInput(value);
 
-    const normalized = value.trim();
+    const trimmed = value.trim();
 
-    if (/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(normalized)) {
-      applyColor(normalized);
-      setHexInput(normalizeHex(normalized));
+    if (/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+      applyColor(trimmed);
+      setHexInput(normalizeHex(trimmed));
     } else {
       setError("");
     }
@@ -185,7 +184,7 @@ export default function ColorPicker() {
       // Brief feedback resets on the next interaction.
     } catch {
       setError(
-        "Could not copy the color. Check your browser's clipboard permissions."
+        "Could not copy the color. Check your browser's clipboard permissions.",
       );
     }
   }
@@ -209,12 +208,11 @@ export default function ColorPicker() {
       title="Color Picker"
       description="Pick colors, explore HEX, RGB and HSL values, and copy color codes for your projects."
       category="Design"
+      icon={Palette}
     >
       <div className="mx-auto max-w-7xl space-y-6">
-
         {/* Main workspace: picker and color information sit side by side. */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-
           {/* LEFT COLUMN: COLOR PICKER */}
           <section className={cardClass}>
             <div className="mb-5 flex items-center gap-3">
@@ -283,7 +281,10 @@ export default function ColorPicker() {
             </div>
 
             {error && (
-              <p role="alert" className="mb-4 text-sm text-red-600 dark:text-red-400">
+              <p
+                role="alert"
+                className="mb-4 text-sm text-red-600 dark:text-red-400"
+              >
                 {error}
               </p>
             )}
@@ -323,7 +324,6 @@ export default function ColorPicker() {
 
           {/* RIGHT COLUMN: COLOR VALUES AND HISTORY */}
           <div className="space-y-6">
-
             {/* Color format values. */}
             <section className={cardClass}>
               <div className="mb-5 flex items-center gap-3">
@@ -383,7 +383,7 @@ export default function ColorPicker() {
                 onClick={() =>
                   copyValue(
                     `HEX: ${color}\nRGB: ${rgbValue}\nHSL: ${hslValue}`,
-                    "all"
+                    "all",
                   )
                 }
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
@@ -397,7 +397,10 @@ export default function ColorPicker() {
               </button>
 
               {copiedValue && (
-                <p role="status" className="mt-3 text-center text-xs text-emerald-600 dark:text-emerald-400">
+                <p
+                  role="status"
+                  className="mt-3 text-center text-xs text-emerald-600 dark:text-emerald-400"
+                >
                   Copied successfully.
                 </p>
               )}
@@ -461,8 +464,8 @@ export default function ColorPicker() {
 
         {/* Compact information footer. */}
         <p className="text-center text-xs text-gray-500 dark:text-gray-400">
-          Colors update instantly. Recent colors are kept in page memory and
-          are cleared when the page is refreshed.
+          Colors update instantly. Recent colors are kept in page memory and are
+          cleared when the page is refreshed.
         </p>
       </div>
     </ToolLayout>

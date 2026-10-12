@@ -19,11 +19,32 @@ Whether you are formatting JSON, converting text, or counting words, Toolnest he
 
 Everything in this Word Counter runs locally in your browser.`;
 
-// Format an estimated duration as minutes or seconds.
+// Format an estimated duration as seconds or minutes.
+// Minutes are rounded to one decimal place, so 1.665 shows as "1.7 min".
 function formatTime(minutes) {
   if (minutes === 0) return "0 min";
   if (minutes < 1) return `${Math.ceil(minutes * 60)} sec`;
-  return `${minutes} min`;
+  return `${Math.round(minutes * 10) / 10} min`;
+}
+
+// Reusable statistic card. Defined OUTSIDE WordCounter so React does not
+// recreate it on every keystroke.
+function StatisticCard({ label, value, icon: Icon }) {
+  return (
+    <div
+      className="rounded-xl border border-black/5 bg-black/[0.02]
+      p-4 dark:border-white/10 dark:bg-white/[0.02]"
+    >
+      <div className="flex items-center gap-2 text-neutral-500">
+        {Icon && <Icon size={16} />}
+        <span className="text-xs">{label}</span>
+      </div>
+
+      <p className="mt-3 text-2xl font-semibold tracking-tight">
+        {value.toLocaleString()}
+      </p>
+    </div>
+  );
 }
 
 export default function WordCounter() {
@@ -79,9 +100,8 @@ export default function WordCounter() {
       sentences,
       paragraphs,
       topWords,
-      // Estimated at 200 words/minute reading and 130 speaking.
-      readingTime: words.length / 200,
-      speakingTime: words.length / 130,
+      // (readingTime and speakingTime removed: the reading/speaking cards
+      // already calculate them from statistics.words)
     };
   }, [text]);
 
@@ -134,25 +154,6 @@ export default function WordCounter() {
   function resetTool() {
     setText("");
     setCopied(false);
-  }
-
-  // Reusable statistic card.
-  function StatisticCard({ label, value, icon: Icon }) {
-    return (
-      <div
-        className="rounded-xl border border-black/5 bg-black/[0.02]
-        p-4 dark:border-white/10 dark:bg-white/[0.02]"
-      >
-        <div className="flex items-center gap-2 text-neutral-500">
-          {Icon && <Icon size={16} />}
-          <span className="text-xs">{label}</span>
-        </div>
-
-        <p className="mt-3 text-2xl font-semibold tracking-tight">
-          {value.toLocaleString()}
-        </p>
-      </div>
-    );
   }
 
   return (

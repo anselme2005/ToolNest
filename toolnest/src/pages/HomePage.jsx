@@ -124,7 +124,7 @@ export default function HomePage() {
             {[
               { label: 'JSON Formatter', query: 'JSON Formatter' },
               { label: 'Word Counter', query: 'Word Counter' },
-              { label: 'Color Converter', query: 'Color Converter' },
+              { label: 'Color Picker', query: 'Color Picker' },
             ].map((item) => (
               <button
                 key={item.label}

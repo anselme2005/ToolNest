@@ -42,7 +42,7 @@ export default function RequestToolModal({ isOpen, onClose }) {
     onClose();
   }
 
-  // Send the request through FormSubmit's AJAX endpoint.
+   // Send the request through FormSubmit's AJAX endpoint.
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
@@ -58,8 +58,13 @@ export default function RequestToolModal({ isOpen, onClose }) {
     setStatus('submitting');
 
     try {
+      // Use the private endpoint from siteConfig if it has one,
+      // otherwise fall back to the plain email address.
+      const destination =
+        siteConfig.requestEndpoint || siteConfig.requestEmail;
+
       const response = await fetch(
-        `https://formsubmit.co/ajax/${siteConfig.requestEmail}`,
+        `https://formsubmit.co/ajax/${destination}`,
         {
           method: 'POST',
           headers: {
@@ -71,21 +76,36 @@ export default function RequestToolModal({ isOpen, onClose }) {
             message: cleanDescription,
             _subject: `New Toolnest tool request: ${cleanName}`,
             _template: 'table',
+            // Turns off FormSubmit's captcha page, which cannot show in AJAX.
+            _captcha: 'false',
           }),
         }
       );
 
-      const result = await response.json();
+      // If the reply is not valid JSON, fall back to an empty object
+      // instead of crashing.
+      const result = await response.json().catch(() => ({}));
 
-      if (!response.ok || result.success !== 'true') {
-        throw new Error('The request could not be submitted.');
+      // FormSubmit may send success as the string "true" or a real boolean.
+      const accepted =
+        response.ok && (result.success === true || result.success === 'true');
+
+      if (!accepted) {
+        // Show the service's own message (e.g. "needs Activation").
+        throw new Error(
+          result.message || 'The request could not be submitted.'
+        );
       }
 
       setStatus('success');
-    } catch {
+    } catch (err) {
       setStatus('error');
+
+      // fetch() throws a TypeError when the network or request is blocked.
       setError(
-        'We could not submit your request. Please try again later.'
+        err instanceof TypeError
+          ? 'Network error. Check your internet connection and try again.'
+          : err.message || 'We could not submit your request. Please try again later.'
       );
     }
   }
@@ -160,7 +180,7 @@ export default function RequestToolModal({ isOpen, onClose }) {
             <p className="mt-2 text-sm leading-6
               text-neutral-600 dark:text-neutral-300">
               Thank you for helping improve Toolnest. Your request
-              has been accepted by the submission service.
+              has been submitted.
             </p>
 
             <button

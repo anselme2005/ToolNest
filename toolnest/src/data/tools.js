@@ -9,7 +9,7 @@ import {
   WandSparkles,
   LockKeyhole,
   Fingerprint,
-  Layers,
+  Database,
 } from 'lucide-react';
 
 // Shared metadata for the homepage and future tool pages.
@@ -95,7 +95,7 @@ export const tools = [
     name: 'Fake Data Generator',
     description: 'Create sample data for testing and development.',
     category: 'Developer',
-    icon: Layers,
+    icon: Database,
     path: '/tools/fake-data-generator',
     color: 'teal',
   },

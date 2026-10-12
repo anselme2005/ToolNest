@@ -419,6 +419,7 @@ export default function FakeDataGenerator() {
       title="Fake Data Generator"
       description="Generate realistic sample records for testing, development, and prototypes."
       category="Developer Tools"
+      icon={Database}
     >
       <div className="space-y-5">
         {/* Configuration and preview sit side by side on desktop. */}

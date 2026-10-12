@@ -8,7 +8,6 @@ import {
   Code2,
   Download,
   FileText,
-  RotateCcw,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';

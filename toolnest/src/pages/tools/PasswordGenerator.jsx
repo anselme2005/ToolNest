@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Copy,
   RefreshCw,
@@ -33,7 +32,7 @@ function secureRandomInt(max) {
 
   if (!globalThis.crypto?.getRandomValues) {
     throw new Error(
-      "Secure random generation is not supported by this browser."
+      "Secure random generation is not supported by this browser.",
     );
   }
 
@@ -75,10 +74,7 @@ function createPassword(length, options, excludeAmbiguous) {
       // Remove confusing characters when the exclusion setting is enabled.
       return excludeAmbiguous
         ? [...characters]
-            .filter(
-              (character) =>
-                !AMBIGUOUS_CHARACTERS.includes(character)
-            )
+            .filter((character) => !AMBIGUOUS_CHARACTERS.includes(character))
             .join("")
         : characters;
     })
@@ -90,13 +86,13 @@ function createPassword(length, options, excludeAmbiguous) {
 
   if (length < groups.length) {
     throw new Error(
-      `Choose a length of at least ${groups.length} for your selected character types.`
+      `Choose a length of at least ${groups.length} for your selected character types.`,
     );
   }
 
   // Guarantee at least one character from every enabled type.
   const requiredCharacters = groups.map((group) =>
-    secureRandomCharacter(group)
+    secureRandomCharacter(group),
   );
 
   // Fill the remaining positions from the combined character pool.
@@ -104,14 +100,11 @@ function createPassword(length, options, excludeAmbiguous) {
 
   const remainingCharacters = Array.from(
     { length: length - requiredCharacters.length },
-    () => secureRandomCharacter(allCharacters)
+    () => secureRandomCharacter(allCharacters),
   );
 
   // Shuffle so the required characters are not predictable by position.
-  return secureShuffle([
-    ...requiredCharacters,
-    ...remainingCharacters,
-  ]);
+  return secureShuffle([...requiredCharacters, ...remainingCharacters]);
 }
 
 // Estimate the strength of an individual generated password.
@@ -127,10 +120,7 @@ function getIndividualPasswordStrength(password) {
     poolSize += CHARACTER_GROUPS.symbols.length;
   }
 
-  const entropy =
-    poolSize > 0
-      ? password.length * Math.log2(poolSize)
-      : 0;
+  const entropy = poolSize > 0 ? password.length * Math.log2(poolSize) : 0;
 
   if (entropy >= 100) {
     return {
@@ -194,25 +184,32 @@ export default function PasswordGenerator() {
   const [excludeAmbiguous, setExcludeAmbiguous] = useState(false);
 
   // --------------------------------------------------
-  // 2. Generated results and interface feedback
+  // 2. Interface feedback
   // --------------------------------------------------
 
-  const [passwords, setPasswords] = useState([]);
   const [visiblePasswords, setVisiblePasswords] = useState(true);
+
+  // Stores the exact text that was last copied. Comparing it with the
+  // current passwords means the "copied" check mark disappears by itself
+  // as soon as the passwords change.
   const [copiedPassword, setCopiedPassword] = useState("");
+
+  // Clipboard errors only. Generation errors are calculated below.
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+
+  // Bumping this number makes useMemo generate a fresh set of passwords.
+  const [regenerateCount, setRegenerateCount] = useState(0);
 
   const selectedGroupCount = Object.values(options).filter(Boolean).length;
 
   // --------------------------------------------------
-  // 3. Automatically generate passwords
+  // 3. Generate passwords (calculated, not stored)
   // --------------------------------------------------
 
-  // Generate a password when the page first opens and whenever
-  // a generation setting changes. Manual regeneration is still
-  // available in the results panel.
-  useEffect(() => {
+  // Recalculated whenever a setting changes or "Generate" is clicked.
+  // This replaces the old useEffect: results are derived from the settings
+  // instead of being copied into state.
+  const { passwords, generationError } = useMemo(() => {
     const validLength =
       length !== "" &&
       Number.isInteger(Number(length)) &&
@@ -221,54 +218,50 @@ export default function PasswordGenerator() {
 
     const validQuantity =
       generationMode === "single" ||
-      (
-        passwordCount !== "" &&
+      (passwordCount !== "" &&
         Number.isInteger(Number(passwordCount)) &&
         Number(passwordCount) >= 1 &&
-        Number(passwordCount) <= 100
-      );
+        Number(passwordCount) <= 100);
 
-    // Do not display old results while a required field is invalid.
+    // While a field is invalid (e.g. being edited), show the placeholder.
     if (!validLength || !validQuantity) {
-      setPasswords([]);
-      setError("");
-      return;
+      return { passwords: [], generationError: "" };
     }
 
     try {
-      setError("");
-      setNotice("");
-      setCopiedPassword("");
+      const amount = generationMode === "single" ? 1 : Number(passwordCount);
 
-      const amount =
-        generationMode === "single"
-          ? 1
-          : Number(passwordCount);
-
-      const newPasswords = Array.from(
-        { length: amount },
-        () =>
-          createPassword(
-            Number(length),
-            options,
-            excludeAmbiguous
-          )
-      );
-
-      setPasswords(newPasswords);
+      return {
+        passwords: Array.from({ length: amount }, () =>
+          createPassword(Number(length), options, excludeAmbiguous),
+        ),
+        generationError: "",
+      };
     } catch (err) {
-      setPasswords([]);
-      setError(
-        err.message || "Could not generate passwords."
-      );
+      return {
+        passwords: [],
+        generationError: err.message || "Could not generate passwords.",
+      };
     }
+    // regenerateCount is listed so the Generate button forces a new result.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     generationMode,
     length,
     passwordCount,
     options,
     excludeAmbiguous,
+    regenerateCount,
   ]);
+
+  // One error to display: a generation problem or a clipboard problem.
+  const displayedError = generationError || error;
+
+  // True only while the copied text still matches what is on screen.
+  const copyIsCurrent =
+    copiedPassword !== "" &&
+    (passwords.includes(copiedPassword) ||
+      copiedPassword === passwords.join("\n"));
 
   // --------------------------------------------------
   // 4. Update character type settings
@@ -276,12 +269,8 @@ export default function PasswordGenerator() {
 
   function toggleOption(optionName) {
     // Prevent disabling the final enabled character type.
-    if (options[optionName] && selectedGroupCount === 1) {
-      setError("At least one character type must remain enabled.");
-      return;
-    }
-
-    setError("");
+    // (The helper text under the switches already explains why.)
+    if (options[optionName] && selectedGroupCount === 1) return;
 
     setOptions((current) => ({
       ...current,
@@ -294,49 +283,24 @@ export default function PasswordGenerator() {
   // --------------------------------------------------
 
   function handleGenerate() {
-    try {
-      setError("");
-      setNotice("");
-      setCopiedPassword("");
-
-      const amount =
-        generationMode === "single"
-          ? 1
-          : Number(passwordCount);
-
-      const newPasswords = Array.from(
-        { length: amount },
-        () =>
-          createPassword(
-            Number(length),
-            options,
-            excludeAmbiguous
-          )
-      );
-
-      setPasswords(newPasswords);
-    } catch (err) {
-      setPasswords([]);
-      setError(
-        err.message || "Could not generate passwords."
-      );
-    }
+    setCopiedPassword("");
+    setError("");
+    setRegenerateCount((count) => count + 1);
   }
 
   // --------------------------------------------------
   // 6. Copy passwords to the clipboard
   // --------------------------------------------------
 
-  async function copyText(text, identifier = "all") {
+  // "text" is stored so the check mark can be matched to what was copied.
+  async function copyText(text) {
     try {
       await navigator.clipboard.writeText(text);
-
-      setCopiedPassword(identifier);
-      setNotice("Copied to clipboard!");
+      setCopiedPassword(text);
       setError("");
     } catch {
       setError(
-        "Clipboard access failed. Make sure you are using HTTPS or localhost, then try again."
+        "Clipboard access failed. Make sure you are using HTTPS or localhost, then try again.",
       );
     }
   }
@@ -375,8 +339,7 @@ export default function PasswordGenerator() {
     "rounded-2xl border border-gray-200 bg-white p-5 shadow-sm " +
     "dark:border-gray-800 dark:bg-gray-900";
 
-  const labelClass =
-    "text-sm font-medium text-gray-700 dark:text-gray-300";
+  const labelClass = "text-sm font-medium text-gray-700 dark:text-gray-300";
 
   const buttonClass =
     "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 " +
@@ -394,11 +357,11 @@ export default function PasswordGenerator() {
       title="Password Generator"
       description="Generate secure random passwords with customizable length and character options."
       category="Utilities"
+      icon={LockKeyhole}
     >
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Two-column layout: settings on the left, results on the right. */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-
           {/* =========================================
               LEFT COLUMN: CONFIGURATION
           ========================================== */}
@@ -423,9 +386,7 @@ export default function PasswordGenerator() {
 
             {/* Generation mode comes FIRST. */}
             <div className="mb-6">
-              <h3 className={`${labelClass} mb-3`}>
-                Generation mode
-              </h3>
+              <h3 className={`${labelClass} mb-3`}>Generation mode</h3>
 
               <div
                 role="radiogroup"
@@ -455,7 +416,6 @@ export default function PasswordGenerator() {
                       onClick={() => {
                         setGenerationMode(mode.value);
                         setError("");
-                        setNotice("");
                         setCopiedPassword("");
                       }}
                       className={`rounded-xl border p-3 text-left transition ${
@@ -506,8 +466,8 @@ export default function PasswordGenerator() {
                           Number.isFinite(value) &&
                           value >= 1
                           ? Math.min(100, Math.floor(value))
-                          : 5
-                      )
+                          : 5,
+                      ),
                     );
                   }}
                   className={numberInputClass}
@@ -522,10 +482,7 @@ export default function PasswordGenerator() {
             {/* Password length */}
             <div className="mb-6">
               <div className="mb-3 flex items-center justify-between gap-4">
-                <label
-                  htmlFor="password-length"
-                  className={labelClass}
-                >
+                <label htmlFor="password-length" className={labelClass}>
                   Password length
                 </label>
 
@@ -540,9 +497,7 @@ export default function PasswordGenerator() {
                 min="4"
                 max="128"
                 value={length === "" ? 16 : length}
-                onChange={(event) =>
-                  setLength(Number(event.target.value))
-                }
+                onChange={(event) => setLength(Number(event.target.value))}
                 className="w-full cursor-pointer accent-red-500"
               />
 
@@ -577,9 +532,7 @@ export default function PasswordGenerator() {
                     const number = Number(value);
 
                     if (Number.isFinite(number)) {
-                      setLength(
-                        Math.min(128, Math.max(4, Math.floor(number)))
-                      );
+                      setLength(Math.min(128, Math.max(4, Math.floor(number))));
                     }
                   }}
                   onBlur={() => {
@@ -594,9 +547,7 @@ export default function PasswordGenerator() {
 
             {/* Character type toggle switches */}
             <div className="mb-6">
-              <h3 className={`${labelClass} mb-3`}>
-                Character types
-              </h3>
+              <h3 className={`${labelClass} mb-3`}>Character types</h3>
 
               <div className="space-y-3">
                 {[
@@ -651,9 +602,7 @@ export default function PasswordGenerator() {
                       <span
                         aria-hidden="true"
                         className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-red-500 ${
-                          active
-                            ? "bg-red-500"
-                            : "bg-gray-300 dark:bg-gray-600"
+                          active ? "bg-red-500" : "bg-gray-300 dark:bg-gray-600"
                         }`}
                       >
                         <span
@@ -676,9 +625,7 @@ export default function PasswordGenerator() {
 
             {/* Exclude ambiguous characters switch */}
             <div>
-              <h3 className={`${labelClass} mb-3`}>
-                Character exclusions
-              </h3>
+              <h3 className={`${labelClass} mb-3`}>Character exclusions</h3>
 
               {/* The row remains neutral in both states. */}
               <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
@@ -713,9 +660,7 @@ export default function PasswordGenerator() {
                 >
                   <span
                     className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                      excludeAmbiguous
-                        ? "translate-x-5"
-                        : "translate-x-0"
+                      excludeAmbiguous ? "translate-x-5" : "translate-x-0"
                     }`}
                   />
                 </span>
@@ -729,26 +674,24 @@ export default function PasswordGenerator() {
 
           <div className="space-y-6">
             {/* Error messages */}
-            {error && (
+            {displayedError && (
               <div
                 role="alert"
                 className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
               >
-                <AlertCircle
-                  size={18}
-                  className="mt-0.5 shrink-0"
-                />
-                <span>{error}</span>
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <span>{displayedError}</span>
               </div>
             )}
 
-            {/* Copy/download feedback */}
-            {notice && !error && (
+            {/* "Copied" message. It only shows while the copied text still matches
+    what is on screen, so it disappears when new passwords are generated. */}
+            {copyIsCurrent && !displayedError && (
               <p
                 role="status"
                 className="text-sm text-emerald-600 dark:text-emerald-400"
               >
-                {notice}
+                Copied to clipboard!
               </p>
             )}
 
@@ -771,9 +714,7 @@ export default function PasswordGenerator() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setVisiblePasswords((current) => !current)
-                    }
+                    onClick={() => setVisiblePasswords((current) => !current)}
                     className={`${buttonClass} border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800`}
                   >
                     {visiblePasswords ? (
@@ -790,8 +731,9 @@ export default function PasswordGenerator() {
                 {generationMode === "single" && (
                   <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950">
                     {(() => {
-                      const resultStrength =
-                        getIndividualPasswordStrength(passwords[0]);
+                      const resultStrength = getIndividualPasswordStrength(
+                        passwords[0],
+                      );
 
                       return (
                         <>
@@ -821,8 +763,8 @@ export default function PasswordGenerator() {
                           </div>
 
                           <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                            {passwords[0].length} characters long.
-                            Strength is an estimate, not a guarantee.
+                            {passwords[0].length} characters long. Strength is
+                            an estimate, not a guarantee.
                           </p>
                         </>
                       );
@@ -884,16 +826,11 @@ export default function PasswordGenerator() {
                           type="button"
                           aria-label={`Copy password ${index + 1}`}
                           title="Copy password"
-                          onClick={() =>
-                            copyText(password, String(index))
-                          }
+                          onClick={() => copyText(password)}
                           className="shrink-0 rounded-lg p-2 text-gray-500 transition hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white"
                         >
-                          {copiedPassword === String(index) ? (
-                            <Check
-                              size={17}
-                              className="text-emerald-500"
-                            />
+                         {copiedPassword === password ? (
+                            <Check size={17} className="text-emerald-500" />
                           ) : (
                             <Copy size={17} />
                           )}
@@ -907,15 +844,14 @@ export default function PasswordGenerator() {
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <button
                     type="button"
-                    onClick={() => copyText(passwords.join("\n"), "all")}
+                    onClick={() => copyText(passwords.join("\n"))}
                     className={`${buttonClass} flex-1 bg-gray-900 text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200`}
                   >
-                    {copiedPassword === "all" ? (
+                    {copiedPassword === passwords.join("\n") ? (
                       <Check size={17} />
                     ) : (
                       <Copy size={17} />
                     )}
-
                     Copy {generationMode === "single" ? "Password" : "All"}
                   </button>
 
@@ -935,15 +871,15 @@ export default function PasswordGenerator() {
                   >
                     <RefreshCw size={17} />
 
-                    {generationMode === "single"
-                      ? "Generate"
-                      : "Generate"}
+                    {generationMode === "single" ? "Generate" : "Generate"}
                   </button>
                 </div>
               </section>
             ) : (
               /* Placeholder while a field is temporarily invalid. */
-              <section className={`${cardClass} flex min-h-64 flex-col items-center justify-center text-center`}>
+              <section
+                className={`${cardClass} flex min-h-64 flex-col items-center justify-center text-center`}
+              >
                 <div className="mb-4 rounded-2xl bg-gray-100 p-4 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                   <LockKeyhole size={28} />
                 </div>
@@ -953,8 +889,8 @@ export default function PasswordGenerator() {
                 </h2>
 
                 <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400">
-                  Choose valid settings on the left. ToolNest will generate
-                  your passwords automatically.
+                  Choose valid settings on the left. ToolNest will generate your
+                  passwords automatically.
                 </p>
               </section>
             )}

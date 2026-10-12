@@ -562,6 +562,20 @@ export default function RegexTester() {
           </div>
         </section>
 
+                {/* Clipboard errors from the copy buttons appear here.
+            (Pattern errors are shown separately inside the pattern section.) */}
+        {error && (
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50
+              px-4 py-3 text-sm text-red-700
+              dark:border-red-500/20 dark:bg-red-500/10
+              dark:text-red-300"
+          >
+            {error}
+          </div>
+        )}
+
         {/* Match details */}
         <section className="overflow-hidden rounded-2xl border
           border-gray-200 bg-white dark:border-white/10
